@@ -1,63 +1,63 @@
 # predictive_app.py
-
-import sys
-import os
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-# ✅ Add project root to Python path so 'utils' can be imported
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-# Now the import will work
-from utils.log_utils import log_prediction
-
-# Other imports
 import streamlit as st
-import pickle
 import pandas as pd
 import time
+from utils.log_utils import log_prediction  # make sure log_utils.py is in utils/
 
-# -------------------------------
-# Load your models
-# -------------------------------
-model_v1_path = os.path.join(BASE_DIR, "models", "model_v1.pkl")
-model_v2_path = os.path.join(BASE_DIR, "models", "model_v2.pkl")
-
-with open(model_v1_path, "rb") as f:
-    model_v1 = pickle.load(f)
-
-with open(model_v2_path, "rb") as f:
-    model_v2 = pickle.load(f)
-
-# -------------------------------
-# Streamlit App
-# -------------------------------
+# --- Page Config ---
+st.set_page_config(page_title="Student Engagement Predictor", layout="centered")
 st.title("Student Engagement Prediction App")
 
-# Input fields
-total_clicks = st.number_input("Total Clicks", min_value=0, step=1)
-active_days = st.number_input("Active Days", min_value=0, step=1)
-interactive_clicks = st.number_input("Interactive Clicks", min_value=0, step=1)
-content_clicks = st.number_input("Content Clicks", min_value=0, step=1)
+# --- Input Fields ---
+st.header("Enter Student Activity Data")
+total_clicks = st.number_input("Total Clicks", min_value=0, step=1, value=10)
+active_days = st.number_input("Active Days", min_value=1, step=1, value=5)
+interactive_clicks = st.number_input("Interactive Clicks", min_value=0, step=1, value=3)
+content_clicks = st.number_input("Content Clicks", min_value=0, step=1, value=2)
 
-if st.button("Predict"):
-    input_data = pd.DataFrame({
-        'total_clicks': [total_clicks],
-        'active_days': [active_days],
-        'interactive_clicks': [interactive_clicks],
-        'content_clicks': [content_clicks]
-    })
+# --- Predict Button ---
+if st.button("Predict Engagement"):
 
+    # Record start time
     start_time = time.time()
+
+    # --- Prediction Logic ---
+    # v1: simple weighted sum
+    v1_prediction = (0.4 * total_clicks) + (0.3 * active_days) + (0.2 * interactive_clicks) + (0.1 * content_clicks)
     
-    pred_v1 = model_v1.predict(input_data)[0]
-    pred_v2 = model_v2.predict(input_data)[0]
-    
-    latency = round(time.time() - start_time, 4)
-    
-    st.write(f"Model V1 Prediction: {pred_v1}")
-    st.write(f"Model V2 Prediction: {pred_v2}")
-    st.write(f"Prediction latency: {latency} seconds")
-    
-    # Log the prediction
-    log_prediction(input_data, pred_v1, pred_v2, latency)
+    # v2: adjusted formula with squared interactive clicks (example improvement)
+    v2_prediction = (0.3 * total_clicks) + (0.25 * active_days) + (0.3 * (interactive_clicks ** 1.5)) + (0.15 * content_clicks)
+
+    # Record end time
+    end_time = time.time()
+    latency = round(end_time - start_time, 4)  # in seconds
+
+    # --- Display Predictions ---
+    st.subheader("Predictions")
+    st.write(f"**v1 Prediction:** {round(v1_prediction, 2)}")
+    st.write(f"**v2 Prediction:** {round(v2_prediction, 2)}")
+    st.write(f"**Latency:** {latency} seconds")
+
+    # --- Feedback Section ---
+    st.subheader("Submit Feedback")
+    feedback_type = st.selectbox("Select Feedback Type", ["Rating", "Comment"])
+    feedback_value = None
+
+    if feedback_type == "Rating":
+        feedback_value = st.slider("Rate Prediction Accuracy (1=Poor, 5=Excellent)", 1, 5, 3)
+    else:
+        feedback_value = st.text_area("Your Comments", "")
+
+    if st.button("Submit Feedback"):
+        # Log feedback to CSV using log_utils
+        log_prediction(
+            total_clicks=total_clicks,
+            active_days=active_days,
+            interactive_clicks=interactive_clicks,
+            content_clicks=content_clicks,
+            v1_prediction=v1_prediction,
+            v2_prediction=v2_prediction,
+            latency=latency,
+            feedback=feedback_value
+        )
+        st.success("Feedback submitted successfully!")
