@@ -1,7 +1,13 @@
 import streamlit as st
-import pandas as pd
 import time
-from utils.log_utils import log_prediction  # make sure log_utils.py is in utils/
+import os
+import sys
+
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+from utils.log_utils import log_prediction
 
 # --- Page Config ---
 st.set_page_config(page_title="Student Engagement Predictor", layout="centered")
