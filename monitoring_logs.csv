@@ -1,1 +1,3 @@
-timestamp,model_version,total_clicks,active_days,interactive_clicks,content_clicks,prediction,latency_ms,user_feedback
+timestamp,latency,feedback_score,model_version,comment,error
+2026-01-19 10:00,0.5,4.5,v1.0,"Good prediction",0
+2026-01-19 10:05,0.8,3.8,v1.0,"Slightly off",1
