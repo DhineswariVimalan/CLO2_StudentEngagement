@@ -13,32 +13,15 @@ st.title("Model Monitoring Dashboard")
 
 # --- Show raw logs ---
 st.subheader("Raw Monitoring Logs")
-st.dataframe(logs.tail(10))  # Show last 10 rows
+st.dataframe(logs_df.tail(100), use_container_width=True)[web:5]
 
-# --- Bar chart: Average latency per model ---
-if "latency" in logs.columns and "model_version" in logs.columns:
-    latency_data = logs.groupby("model_version")["latency"].mean().reset_index()
-    st.subheader("Average Latency per Model")
-    st.bar_chart(latency_data.set_index("model_version"))
-else:
-    st.warning("Latency data not available.")
-
-# --- Bar chart: Average feedback score per model ---
-if "feedback_score" in logs.columns and "model_version" in logs.columns:
-    feedback_data = logs.groupby("model_version")["feedback_score"].mean().reset_index()
-    st.subheader("Average Feedback Score per Model")
-    st.bar_chart(feedback_data.set_index("model_version"))
-else:
-    st.warning("Feedback score data not available.")
-
-# --- Recent comments ---
-if "comments" in logs.columns:
-    st.subheader("Recent Comments")
-    recent_comments = logs["comments"].dropna().tail(5)
-    if not recent_comments.empty:
-        for idx, comment in enumerate(recent_comments, 1):
-            st.write(f"{idx}. {comment}")
-    else:
-        st.info("No comments available.")
-else:
-    st.warning("Comments column not found.")
+## Model Behavior Insights
+st.subheader("Model Behavior Interpretation")
+latency_trend = px.line(logs_df.sort_values('timestamp'), x='timestamp', y='latency', title="Latency Trend Over Time")
+st.plotly_chart(latency_trend, use_container_width=True)
+if avg_latency > 1.0:
+    st.error("⚠️ High average latency detected - investigate model inference.")
+if avg_feedback < 4.0:
+    st.warning("📉 Low feedback scores - check for data drift or model degradation.")
+if error_rate > 5:
+    st.error("🚨 High error rate - review recent logs for patterns.")[web:8][web:5]
