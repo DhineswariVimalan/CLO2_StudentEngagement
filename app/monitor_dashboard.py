@@ -2,26 +2,61 @@
 import streamlit as st
 import pandas as pd
 
-# --- Load logs CSV ---
+st.set_page_config(page_title="Model Monitoring Dashboard", layout="wide")
+
+st.title("📊 Model Monitoring Dashboard")
+
+# --- Load logs CSV safely ---
 try:
-    logs = pd.read_csv("monitoring_logs.csv")
+    logs_df = pd.read_csv("monitoring_logs.csv")
 except FileNotFoundError:
-    st.error("monitoring_logs.csv not found. Make sure your logs file exists.")
+    st.error("❌ monitoring_logs.csv not found. Run the prediction app first.")
     st.stop()
 
-st.title("Model Monitoring Dashboard")
+# --- Check if logs are empty ---
+if logs_df.empty:
+    st.warning("⚠️ Monitoring logs are empty.")
+    st.stop()
 
-# --- Show raw logs ---
-st.subheader("Raw Monitoring Logs")
-st.dataframe(logs_df.tail(100), use_container_width=True)[web:5]
+# --- Show recent logs ---
+st.subheader("📄 Recent Predictions (Last 10)")
+st.dataframe(logs_df.tail(10), use_container_width=True)
 
-## Model Behavior Insights
-st.subheader("Model Behavior Interpretation")
-latency_trend = px.line(logs_df.sort_values('timestamp'), x='timestamp', y='latency', title="Latency Trend Over Time")
-st.plotly_chart(latency_trend, use_container_width=True)
-if avg_latency > 1.0:
-    st.error("⚠️ High average latency detected - investigate model inference.")
-if avg_feedback < 4.0:
-    st.warning("📉 Low feedback scores - check for data drift or model degradation.")
-if error_rate > 5:
-    st.error("🚨 High error rate - review recent logs for patterns.")[web:8][web:5]
+# --- Average latency per model ---
+if {"latency", "model_version"}.issubset(logs_df.columns):
+    st.subheader("⏱️ Average Latency per Model")
+    latency_data = (
+        logs_df.groupby("model_version")["latency"]
+        .mean()
+        .reset_index()
+        .set_index("model_version")
+    )
+    st.bar_chart(latency_data)
+else:
+    st.warning("Latency or model_version column missing.")
+
+# --- Average feedback score per model ---
+if {"feedback_score", "model_version"}.issubset(logs_df.columns):
+    st.subheader("⭐ Average Feedback Score per Model")
+    feedback_data = (
+        logs_df.groupby("model_version")["feedback_score"]
+        .mean()
+        .reset_index()
+        .set_index("model_version")
+    )
+    st.bar_chart(feedback_data)
+else:
+    st.warning("Feedback score or model_version column missing.")
+
+# --- Recent comments ---
+if "comments" in logs_df.columns:
+    st.subheader("💬 Recent User Comments")
+    recent_comments = logs_df["comments"].dropna().tail(5)
+
+    if not recent_comments.empty:
+        for i, comment in enumerate(recent_comments, 1):
+            st.write(f"{i}. {comment}")
+    else:
+        st.info("No user comments available.")
+else:
+    st.warning("Comments column not found.")
